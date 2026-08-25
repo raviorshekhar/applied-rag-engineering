@@ -1,10 +1,10 @@
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim
 
-# Model load karo (pehli baar chalega toh download hoga, thoda time lagega)
+# Load the model
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# 3 sentences - 2 similar meaning wale, 1 alag
+# 3 sentences - 2 with similar meaning and 1 different
 sentences = [
     "db2 database is down",
     "db2 instance is down",
@@ -14,7 +14,7 @@ sentences = [
     "Ronaldo is a GOAT",
 ]
 sentence_embeddings = model.encode(sentences)
-# In teeno ko embeddings mein convert karo
+# Convert these into embeddings
 #query = "database issue"
 query = "cricket score"
 query_embedding = model.encode(query)

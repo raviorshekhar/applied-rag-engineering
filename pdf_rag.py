@@ -6,11 +6,13 @@ import chromadb
 chroma_client = chromadb.Client()
 collection = chroma_client.get_or_create_collection(name="db2_docs")
 from pypdf import PdfReader
-reader = PdfReader("Db2Doc.pdf")
-print("Total pages:", len(reader.pages))
+pdf_files = ["Db2Doc.pdf", "DB2BACKUP.pdf", "DB2RESTORE.pdf"]
 full_text = ""
-for page in reader.pages:
-    full_text += page.extract_text() + "\n"
+for pdf_file in pdf_files:
+    reader = PdfReader(pdf_file)
+    print("Total pages in", pdf_file, ":", len(reader.pages))
+    for page in reader.pages:
+        full_text += page.extract_text() + "\n"
 
 print("Total characters extracted:", len(full_text))
 print("\nFirst 300 characters:\n", full_text[:300])

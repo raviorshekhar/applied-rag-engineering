@@ -6,7 +6,9 @@ import chromadb
 chroma_client = chromadb.Client()
 collection = chroma_client.get_or_create_collection(name="db2_docs")
 from pypdf import PdfReader
-pdf_files = ["Db2Doc.pdf", "DB2BACKUP.pdf", "DB2RESTORE.pdf"]
+
+# ==================== INDEXING PIPELINE ====================
+pdf_files = ["Db2Doc.pdf", "DB2BACKUP.pdf", "DB2RESTORE.pdf"] #Indexing multiple pdf files
 full_text = ""
 for pdf_file in pdf_files:
     reader = PdfReader(pdf_file)
@@ -28,35 +30,49 @@ for i in range(0, len(full_text), chunk_size - overlap):
 print("Total chunks created:", len(chunks))
 print("\nFirst chunk:\n", chunks[0])
 
-collection.upsert(
+collection.upsert( #save embeddings in Chroma or vector database
     documents=chunks,
     ids=[f"id_{i+1}" for i in range(len(chunks))]
 )
 
-print("Chunks stored in Chroma:", collection.count())
+print("Chunks stored in Chroma:", collection.count()) #Indexing done, now we can query the vector database for relevant chunks based on user questions
 
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-while True:
+# ==================== BM25 SETUP ====================
+from rank_bm25 import BM25Okapi
+tokenized_chunks = [chunk.split() for chunk in chunks]
+bm25 = BM25Okapi(tokenized_chunks)
+
+# ==================== RETRIEVAL ====================
+#Retrieve relevant chunks based on user question and send to Gemini for answer generation
+while True: 
     user_question = input("Enter your question (type 'exit' to quit): ")
     #print(f"DEBUG - you typed: [{user_question}]")
     if user_question.lower() == 'exit':
         break
-    results = collection.query(
+    results = collection.query( #Retrieve completed here
         query_texts=[user_question],
         n_results=3
 
 )
-    
 
+    tokenized_query = user_question.split()
+    bm25_top_chunks = bm25.get_top_n(tokenized_query, chunks, n=3)
+    
+    semantic_chunks = results['documents'][0]
+    combined_chunks = semantic_chunks + bm25_top_chunks
+    combined_chunks = list(set(combined_chunks))
+    
+# ==================== GENERATION ====================
     print("Retrieved chunks for query:", user_question)
-    for retrieved_chunk in results['documents'][0]:
+    for retrieved_chunk in combined_chunks:
         print("\n---")
         print(retrieved_chunk)
 
     
-    context = "\n".join(results['documents'][0])
+    context = "\n".join(combined_chunks)
 
     prompt = f"""Extracted from a Db2 document: {context}
     Based on this context, answer the question: {user_question}"""
@@ -69,3 +85,5 @@ while True:
 
     print("\nGemini's answer:")
     print(response.text)
+
+

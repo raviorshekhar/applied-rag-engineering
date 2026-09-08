@@ -21,18 +21,19 @@ print("\nFirst 300 characters:\n", full_text[:300])
 
 #Chunking the text into smaller parts for better processing
 chunk_size = 400  # Adjust this size based on your needs
-chunks = []
+#chunks = []
+new_chunks=[]
 overlap = 100    # Overlap between chunks to maintain context
 for i in range(0, len(full_text), chunk_size - overlap):
     chunk = full_text[i:i+chunk_size]
-    chunks.append(chunk)
+    new_chunks.append(chunk)
 
-print("Total chunks created:", len(chunks))
-print("\nFirst chunk:\n", chunks[0])
+print("Total chunks created:", len(new_chunks))
+print("\nFirst chunk:\n", new_chunks[0])
 
 collection.upsert( #save embeddings in Chroma or vector database
-    documents=chunks,
-    ids=[f"id_{i+1}" for i in range(len(chunks))]
+    documents=new_chunks,
+    ids=[f"id_{i+1}" for i in range(len(new_chunks))]
 )
 
 print("Chunks stored in Chroma:", collection.count()) #Indexing done, now we can query the vector database for relevant chunks based on user questions
@@ -40,9 +41,28 @@ print("Chunks stored in Chroma:", collection.count()) #Indexing done, now we can
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
+
+#Langchaain Integration
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=400,
+    chunk_overlap=100,
+
+
+)
+
+test_text = full_text
+new_chunks = splitter.split_text(test_text)
+
+print("Total chunks (Langchain):", len(new_chunks))
+print("\nFirst chunk:\n", new_chunks[0])
+
+
+
 # ==================== BM25 SETUP ====================
 from rank_bm25 import BM25Okapi
-tokenized_chunks = [chunk.split() for chunk in chunks]
+tokenized_chunks = [chunk.split() for chunk in new_chunks]
 bm25 = BM25Okapi(tokenized_chunks)
 
 # ==================== RETRIEVAL ====================
@@ -59,7 +79,7 @@ while True:
 )
 
     tokenized_query = user_question.split()
-    bm25_top_chunks = bm25.get_top_n(tokenized_query, chunks, n=3)
+    bm25_top_chunks = bm25.get_top_n(tokenized_query, new_chunks, n=3)
     
     semantic_chunks = results['documents'][0]
     combined_chunks = semantic_chunks + bm25_top_chunks

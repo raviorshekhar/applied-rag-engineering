@@ -1,3 +1,4 @@
+import ollama
 from dotenv import load_dotenv
 import os
 from google import genai
@@ -78,6 +79,14 @@ while True:
         contents=prompt
     )
 
+    ollama_response = ollama.chat(
+        model='llama3.2',
+        messages=[{'role': 'user', 'content': prompt}]
+    )
+    
+    print("\nOllama's answer:")
+    print(ollama_response['message']['content'])
+
     print("\nGemini's answer:")
     print(response.text)
 
@@ -108,3 +117,12 @@ for question, keywords in zip(test_questions, expected_keywords):
         print(f"PASS: '{question}' -> all keywords found: {keywords}")
     else:
         print(f"PARTIAL/FAIL: '{question}' -> found {matched}, missing {[kw for kw in keywords if kw not in matched]}")
+
+
+
+test_response = ollama.chat(
+    model='llama3.2',
+    messages=[{'role': 'user', 'content': 'What is a database backup?'}]
+)
+
+print(test_response['message']['content'])

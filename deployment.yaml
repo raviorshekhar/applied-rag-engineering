@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db2-assistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db2-assistant
+  template:
+    metadata:
+      labels:
+        app: db2-assistant
+    spec:
+      containers:
+      - name: db2-assistant
+        image: db2-assistant
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8501
+        envFrom:
+        - secretRef:
+            name: gemini-secret
